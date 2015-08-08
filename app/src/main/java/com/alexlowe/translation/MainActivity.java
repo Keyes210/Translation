@@ -1,5 +1,8 @@
 package com.alexlowe.translation;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -60,18 +63,33 @@ public class MainActivity extends AppCompatActivity {
     public void onTranslateClick(View view) {
         EditText translateEditText = (EditText) findViewById(R.id.translateEditText);
 
-        if (!isEmpty(translateEditText)) {
-            Toast.makeText(this, "Getting translations...", Toast.LENGTH_SHORT).show();
+        if (isNetAvail()) {
+            if (!isEmpty(translateEditText)) {
+                Toast.makeText(this, "Getting translations...", Toast.LENGTH_SHORT).show();
 
-            new SaveTheFeed().execute();
-        } else {
-            Toast.makeText(this, "Enter Words to Translate", Toast.LENGTH_SHORT).show();
+                new SaveTheFeed().execute();
+                translateEditText.setText("");
+            } else {
+                Toast.makeText(this, "Enter Words to Translate", Toast.LENGTH_SHORT).show();
+            }
+        }else{
+            Toast.makeText(this,"Network is unavailable", Toast.LENGTH_LONG).show();
         }
     }
 
     protected boolean isEmpty(EditText editText) {
         // return (editText != null); my idea
         return editText.getText().toString().trim().length() == 0;
+    }
+
+    private boolean isNetAvail() {
+        ConnectivityManager manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+        boolean isAvailable = false;
+        if(networkInfo != null && networkInfo.isConnected()){
+            isAvailable = true;
+        }
+        return isAvailable;
     }
 
     private class SaveTheFeed extends AsyncTask<Void, Void, Void> {
