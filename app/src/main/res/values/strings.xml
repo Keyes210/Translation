@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Translation</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="translation_text_view">Enter Words Above For Translation</string>
+    <string name="trans_btn_txt">Translate</string>
+</resources>
