@@ -9,33 +9,30 @@
                 tools:context=".MainActivity">
 
     <EditText
+        android:id="@+id/words_edit_text"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/translateEditText"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"/>
+        android:layout_height="wrap_content" />
 
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Speak"
-        android:id="@+id/buttonSpeak"
-        android:layout_below="@+id/translateEditText"
+        android:id="@+id/button"
+        android:layout_below="@+id/words_edit_text"
         android:layout_alignParentLeft="true"
         android:layout_marginTop="16dp"
         android:onClick="ExceptSpeechInput"/>
 
-
     <Button
+        android:id="@+id/translate_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/trans_btn_txt"
-        android:id="@+id/translate_button"
-        android:layout_below="@+id/buttonSpeak"
+        android:layout_marginTop="70dp"
+        android:text="@string/translate_button"
+        android:onClick="onTranslateText"
+        android:layout_below="@+id/words_edit_text"
         android:layout_alignParentLeft="true"
-        android:onClick="onTranslateClick"
-        android:layout_alignParentStart="true"/>
+        android:layout_alignParentStart="true" />
 
     <Spinner
         android:layout_width="match_parent"
@@ -57,15 +54,14 @@
         android:layout_alignParentStart="true"
         android:onClick="readTheText"/>
 
-
     <TextView
-        android:id="@+id/translationTextView"
-        android:text="@string/translation_text_view"
+        android:id="@+id/translate_text_view"
+        android:text="@string/translate_text_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         android:layout_below="@+id/button2"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_marginTop="10dp"/>
+        android:layout_alignParentStart="true" />
 
 </RelativeLayout>

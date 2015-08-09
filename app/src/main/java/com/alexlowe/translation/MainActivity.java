@@ -1,18 +1,13 @@
 package com.alexlowe.translation;
 
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
-import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
@@ -29,31 +24,51 @@ import org.apache.http.params.BasicHttpParams;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
 
+public class MainActivity extends Activity implements
+        TextToSpeech.OnInitListener {
+
+    // Define the spoken language we wish to use
+    // You must install all of these on your phone for text to speech
+    // Settings - Language & Input - Text-to-speech output -
+    // Preferred Engine Settings - Install voice data
     private Locale currentSpokenLang = Locale.US;
 
+    // Create the Locale objects for languages not in Android Studio
     private Locale locSpanish = new Locale("es", "MX");
     private Locale locRussian = new Locale("ru", "RU");
     private Locale locPortuguese = new Locale("pt", "BR");
     private Locale locDutch = new Locale("nl", "NL");
 
-    private Locale[] languages = {locDutch, Locale.FRENCH, Locale.GERMAN, Locale.ITALIAN, locPortuguese,
-                    locRussian, locSpanish};
+    // Stores all the Locales in an Array so they are easily found
+    private Locale[] languages = {locDutch, Locale.FRENCH, Locale.GERMAN, Locale.ITALIAN,
+            locPortuguese, locRussian, locSpanish};
 
+    // Synthesizes text to speech
     private TextToSpeech textToSpeech;
+
+    // Spinner for selecting the spoken language
     private Spinner languageSpinner;
+
+    // Currently selected language in Spinner
     private int spinnerIndex = 0;
 
-    private String[] translationsArray;
+    // Will hold all translations
+    private String[] arrayOfTranslations;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,107 +76,113 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         setContentView(R.layout.activity_main);
 
         languageSpinner = (Spinner) findViewById(R.id.lang_spinner);
+
+        // When the Spinner is changed update the currently selected language
+        // to speak in
         languageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                currentSpokenLang = languages[position];
-                spinnerIndex = position;
+            public void onItemSelected(AdapterView<?> adapterView, View view, int index, long l) {
+                currentSpokenLang = languages[index];
+
+                // Store the selected Spinner index for use elsewhere
+                spinnerIndex = index;
+
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> parent) {
+            public void onNothingSelected(AdapterView<?> adapterView) {
 
             }
         });
 
         textToSpeech = new TextToSpeech(this, this);
+
     }
 
-    //releases tts if it's running when the app is killed
+    // When the app closes shutdown text to speech
     @Override
-    protected void onDestroy() {
-        if(textToSpeech != null){
+    public void onDestroy() {
+        if (textToSpeech != null) {
             textToSpeech.stop();
             textToSpeech.shutdown();
         }
         super.onDestroy();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
     // Calls for the AsyncTask to execute when the translate button is clicked
-    public void onTranslateClick(View view) {
-        EditText translateEditText = (EditText) findViewById(R.id.translateEditText);
+    public void onTranslateText(View view) {
 
-        if (isNetAvail()) {
-            if (!isEmpty(translateEditText)) {
-                Toast.makeText(this, "Getting translations...", Toast.LENGTH_SHORT).show();
+        EditText translateEditText = (EditText) findViewById(R.id.words_edit_text);
 
-                new SaveTheFeed().execute();
-                translateEditText.setText("");
-            } else {
-                Toast.makeText(this, "Enter Words to Translate", Toast.LENGTH_SHORT).show();
-            }
-        }else{
-            Toast.makeText(this,"Network is unavailable", Toast.LENGTH_LONG).show();
+        // If the user entered words to translate then get the JSON data
+        if(!isEmpty(translateEditText)){
+
+            Toast.makeText(this, "Getting Translations",
+                    Toast.LENGTH_LONG).show();
+
+            // Calls for the method doInBackground to execute
+            new SaveTheFeed().execute();
+
+        } else {
+
+            // Post an error message if they didn't enter words
+            Toast.makeText(this, "Enter Words to Translate",
+                    Toast.LENGTH_SHORT).show();
+
         }
+
     }
 
-    protected boolean isEmpty(EditText editText) {
-        // return (editText != null); my idea
+    // Check if the user entered words to translate
+    // Returns false if not empty
+    protected boolean isEmpty(EditText editText){
+
+        // Get the text in the EditText convert it into a string, delete whitespace
+        // and check length
         return editText.getText().toString().trim().length() == 0;
+
     }
 
-    private boolean isNetAvail() {
-        ConnectivityManager manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
-        boolean isAvailable = false;
-        if(networkInfo != null && networkInfo.isConnected()){
-            isAvailable = true;
-        }
-        return isAvailable;
-    }
-
+    // Initializes text to speech capability
     @Override
     public void onInit(int status) {
-        if (status == TextToSpeech.SUCCESS){
+        // Check if TextToSpeech is available
+        if (status == TextToSpeech.SUCCESS) {
+
             int result = textToSpeech.setLanguage(currentSpokenLang);
 
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED){
-                Toast.makeText(this, "Language not supported", Toast.LENGTH_SHORT).show();
+            // If language data or a specific language isn't available error
+            if (result == TextToSpeech.LANG_MISSING_DATA
+                    || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Toast.makeText(this, "Language Not Supported", Toast.LENGTH_SHORT).show();
             }
-        }else {
-            Toast.makeText(this, "Text to Speech Failed", Toast.LENGTH_SHORT).show();
+
+        } else {
+            Toast.makeText(this, "Text To Speech Failed", Toast.LENGTH_SHORT).show();
         }
+
     }
 
+    // Speaks the selected text using the correct voice for the language
     public void readTheText(View view) {
+
+        // Set the voice to use
         textToSpeech.setLanguage(currentSpokenLang);
-        if(translationsArray.length >= 9){
-            textToSpeech.speak(translationsArray[spinnerIndex + 4], TextToSpeech.QUEUE_FLUSH, null);
-        }else{
+
+        // Check that translations are in the array
+        if (arrayOfTranslations.length >= 9){
+
+            // There aren't voices for our first 3 languages so skip them
+            // QUEUE_FLUSH deletes previous text to read and replaces it
+            // with new text
+            textToSpeech.speak(arrayOfTranslations[spinnerIndex+4], TextToSpeech.QUEUE_FLUSH, null);
+
+        } else {
+
             Toast.makeText(this, "Translate Text First", Toast.LENGTH_SHORT).show();
+
         }
+
     }
 
 
@@ -178,7 +199,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            EditText translateEditText = (EditText) findViewById(R.id.translateEditText);
+            EditText translateEditText = (EditText) findViewById(R.id.words_edit_text);
             wordsToTrans = translateEditText.getText().toString();
             wordsToTrans = wordsToTrans.replace(" ", "+");
         }
@@ -235,20 +256,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             return null;
         }
 
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            TextView translationTextView = (TextView) findViewById(R.id.translationTextView);
 
-            translationTextView.setMovementMethod(new ScrollingMovementMethod());
-
-            //just want translation, not the language names
-            String stringOfTrans = result.replaceAll("\\w+\\s:", "#");
-
-            //breaks long string into array, separates by #
-            translationsArray = stringOfTrans.split("#");
-
-            translationTextView.setText(result);
-        }
 
         protected void outputTranslations(JSONArray jsonArray) {
             String[] languages = {"arabic", "chinese", "danish", "dutch",
@@ -267,35 +275,70 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             }
 
         }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            TextView translationTextView = (TextView) findViewById(R.id.translate_text_view);
+
+            translationTextView.setMovementMethod(new ScrollingMovementMethod());
+
+            //just want translation, not the language names
+            String stringOfTrans = result.replaceAll("\\w+\\s:", "#");
+
+            //breaks long string into array, separates by #
+            arrayOfTranslations = stringOfTrans.split("#");
+
+            translationTextView.setText(result);
+        }
     }
 
+    // Converts speech to text
     public void ExceptSpeechInput(View view) {
+
+        // Starts an Activity that will convert speech to text
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
 
-        //telling recognizer how you want it to interpret speech
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        //telling it to use english
+        // Use a language model based on free-form speech recognition
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+
+        // Recognize speech based on the default speech of device
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        //message fro prompt
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.speech_input_phrase));
+
+        // Prompt the user to speak
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
+                getString(R.string.speech_input_phrase));
 
         try{
+
             startActivityForResult(intent, 100);
-        }catch (ActivityNotFoundException e){
-            Toast.makeText(this, getString(R.string.stt_not_supported), Toast.LENGTH_SHORT).show();
+
+        } catch (ActivityNotFoundException e){
+
+            Toast.makeText(this, getString(R.string.stt_not_supported_message), Toast.LENGTH_LONG).show();
+
         }
+
     }
 
-    protected void OnActivityResult(int requestCode, int resultCode, Intent data){
-        if (requestCode == 100 && data != null && resultCode == RESULT_OK){
+    // The results of the speech recognizer are sent here
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+
+        // 100 is the request code sent by startActivityForResult
+        if((requestCode == 100) && (data != null) && (resultCode == RESULT_OK)){
+
+            // Store the data sent back in an ArrayList
             ArrayList<String> spokenText = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
 
-            EditText wordsEntered = (EditText) findViewById(R.id.translateEditText);
+            EditText wordsEntered = (EditText) findViewById(R.id.words_edit_text);
+
+            // Put the spoken text in the EditText
             wordsEntered.setText(spokenText.get(0));
+
         }
+
     }
-
-
 
 
 }
+
